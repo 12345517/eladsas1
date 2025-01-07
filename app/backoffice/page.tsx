@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { GenealogyTree } from '@/components/GenealogyTree'
 import { User } from '@/types/user'
-import { useToast } from '@/components/ui/use-toast'
+import { useToast } from '@/components/ui/useToast'
 
 export default function BackofficePage() {
   const { data: session } = useSession()
