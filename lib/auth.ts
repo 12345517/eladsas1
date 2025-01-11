@@ -1,9 +1,9 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import clientPromise from "@/lib/db"
-import { User } from "@/types/user"
+import { User } from "@/types/User"
 import { compare } from "bcryptjs"
-
+import UserModel, { IUser } from '@/models/types/User'
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({

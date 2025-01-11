@@ -4,117 +4,103 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { GenealogyTree } from '@/components/GenealogyTree'
-import { User } from '@/types/user'
-import { useToast } from '@/components/ui/useToast'
+import { User } from '@/types/User'
+
+interface UserData {
+  user: User;
+  directReferrals: User[];
+  secondLevelReferrals: { [key: string]: User[] };
+}
 
 export default function BackofficePage() {
   const { data: session } = useSession()
-  const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(true)
-  const [userData, setUserData] = useState<{
-    user: User;
-    directReferrals: User[];
-    secondLevelReferrals: { [key: string]: User[] };
-  } | null>(null)
+  const [userData, setUserData] = useState<UserData | null>(null)
 
   useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/referrals')
+        if (response.ok) {
+          const data = await response.json()
+          setUserData(data)
+        } else {
+          console.error('Failed to fetch user data')
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+      }
+    }
+
     if (session) {
-      fetchReferralData()
+      fetchUserData()
     }
   }, [session])
 
-  const fetchReferralData = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/user/referrals')
-      
-      if (!response.ok) {
-        throw new Error('Error al cargar los datos')
-      }
-
-      const data = await response.json()
-      setUserData(data)
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los datos de referidos. Por favor, intente nuevamente.",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   if (!session) {
-    return <div>Por favor, inicie sesión para ver esta página.</div>
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    )
+    return <div>Please sign in to access the backoffice.</div>
   }
 
   if (!userData) {
-    return (
-      <div className="text-center py-8">
-        <p>No se pudieron cargar los datos. Por favor, actualice la página.</p>
-      </div>
-    )
+    return <div>Loading...</div>
   }
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Mi Red de Referidos</h1>
-      <Card className="mb-8">
+      <h1 className="text-2xl font-bold mb-4">Backoffice</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Información del Usuario</h2>
+          </CardHeader>
+          <CardContent>
+            <p>Nombre: {userData.user.name}</p>
+            <p>Email: {userData.user.email}</p>
+            <p>ID: {userData.user.id}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <h2 className="text-xl font-semibold">Estadísticas</h2>
+          </CardHeader>
+          <CardContent>
+            <p>Referidos Directos: {userData.directReferrals.length}</p>
+            <p>Referidos de Segundo Nivel: {Object.values(userData.secondLevelReferrals).flat().length}</p>
+          </CardContent>
+        </Card>
+      </div>
+      <Card className="mt-4">
         <CardHeader>
           <h2 className="text-xl font-semibold">Árbol Genealógico</h2>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <div className="min-w-[800px]">
-            <GenealogyTree 
-              user={userData.user}
-              directReferrals={userData.directReferrals}
-              secondLevelReferrals={userData.secondLevelReferrals}
-            />
-          </div>
+        <CardContent>
+          <GenealogyTree
+            user={userData.user}
+            directReferrals={userData.directReferrals}
+            secondLevelReferrals={userData.secondLevelReferrals}
+          />
         </CardContent>
       </Card>
-      
-      <Card>
+      <Card className="mt-4">
         <CardHeader>
-          <h2 className="text-xl font-semibold">Mis Referidos Directos</h2>
+          <h2 className="text-xl font-semibold">Lista de Referidos</h2>
         </CardHeader>
         <CardContent>
-          {userData.directReferrals.length === 0 ? (
-            <p>Aún no tienes referidos directos.</p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {userData.directReferrals.map((referral) => (
-                <Card key={referral._id} className="p-4">
-                  <div className="flex flex-col gap-2">
-                    <p className="font-semibold">{referral.name}</p>
-                    <p className="text-sm text-muted-foreground">{referral.email}</p>
-                    <div className="flex justify-between items-center text-sm">
-                      <span>Puntos: {referral.points}</span>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        referral.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {referral.isApproved ? 'Activo' : 'Pendiente'}
-                      </span>
-                    </div>
-                    <p className="text-sm">
-                      Referidos: {userData.secondLevelReferrals[referral._id]?.length || 0}
-                    </p>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          )}
+          <h3 className="text-lg font-semibold mb-2">Referidos Directos</h3>
+          <ul>
+            {userData.directReferrals.map((referral) => (
+              <li key={referral.id}>
+                {referral.name} - {referral.email}
+                <ul>
+                  <li>
+                    Referidos: {userData.secondLevelReferrals[referral.id]?.length || 0}
+                  </li>
+                </ul>
+              </li>
+            ))}
+          </ul>
         </CardContent>
       </Card>
     </div>
   )
 }
+

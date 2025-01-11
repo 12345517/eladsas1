@@ -1,66 +1,53 @@
-import NextAuth from "next-auth"
+import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
-import clientPromise from "@/lib/db"
-import { User } from "@/types/user"
+import { connectDB } from "@/lib/db"
+import UserModel, { IUser } from '@/types/User'
 
-export const authOptions = {
+interface ExtendedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isApproved: boolean;
+}
+
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: "Credenciales",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Contraseña", type: "password" }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error('Credenciales incompletas')
-          }
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email y contraseña son requeridos")
+        }
 
-          const client = await clientPromise
-          const db = client.db()
-          const user = await db.collection<User>("users").findOne({ 
-            email: credentials.email.toLowerCase()
-          })
+        await connectDB()
+        const user = await UserModel.findOne({ email: credentials.email }) as IUser | null
 
-          if (!user) {
-            throw new Error('Usuario no encontrado')
-          }
+        if (!user || !(await compare(credentials.password, user.password))) {
+          throw new Error("Credenciales inválidas")
+        }
 
-          if (!user.isApproved) {
-            throw new Error('Usuario pendiente de aprobación')
-          }
-
-          const isPasswordValid = await compare(credentials.password, user.password)
-          if (!isPasswordValid) {
-            throw new Error('Contraseña incorrecta')
-          }
-
-          return {
-            id: user._id.toString(),
-            email: user.email,
-            name: user.name,
-            role: user.membership,
-            isApproved: user.isApproved
-          }
-        } catch (error) {
-          console.error('Error en autorización:', error)
-          throw error
+        return {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isApproved: user.isApproved
         }
       }
     })
   ],
-  pages: {
-    signIn: '/auth/login',
-    error: '/auth/error',
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = user.role
-        token.isApproved = user.isApproved
+        token.role = (user as ExtendedUser).role
+        token.isApproved = (user as ExtendedUser).isApproved
       }
       return token
     },
@@ -73,12 +60,14 @@ export const authOptions = {
       return session
     }
   },
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 días
+  pages: {
+    signIn: '/auth/login',
+    error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
 
-const handler = NextAuth(authOptions)
+import NextAuth from "next-auth"
+export const handler = NextAuth(authOptions)
 export { handler as GET, handler as POST }
+
