@@ -1,9 +1,9 @@
-import NextAuth, { NextAuthOptions, DefaultSession, DefaultUser } from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
 import UserModel from '@/models/User'
 
-export const authOptions: NextAuthOptions = {
+const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credenciales",
@@ -20,6 +20,10 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !(await compare(credentials.password, user.password))) {
           throw new Error("Credenciales inválidas")
+        }
+
+        if (!user.isApproved) {
+          throw new Error("Tu cuenta aún no ha sido aprobada por un administrador")
         }
 
         return {
@@ -41,7 +45,7 @@ export const authOptions: NextAuthOptions = {
       }
       return token
     },
-    session: async ({ session, token }) => {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
@@ -57,6 +61,8 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 }
 
-export const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+const handler = NextAuth(authOptions);
 
+export { handler as GET, handler as POST };
+
+git st

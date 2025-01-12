@@ -53,17 +53,8 @@ export default function RegisterPage() {
       })
 
       if (response.ok) {
-        const result = await signIn('credentials', {
-          redirect: false,
-          email: formData.email,
-          password: formData.password
-        })
-
-        if (result?.error) {
-          setError(result.error)
-        } else {
-          router.push('/dashboard')
-        }
+        // El registro fue exitoso, pero el usuario aún no está aprobado
+        router.push('/registro-exitoso')
       } else {
         const data = await response.json()
         setError(data.message || 'Error en el registro')
@@ -166,6 +157,9 @@ export default function RegisterPage() {
             </div>
             {error && <p className="text-red-500">{error}</p>}
             <Button type="submit" className="w-full">Registrarse</Button>
+            <p className="mt-4 text-sm text-gray-600">
+              Después del registro, un administrador revisará y aprobará tu cuenta.
+            </p>
           </form>
         </CardContent>
       </Card>

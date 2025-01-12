@@ -1,9 +1,8 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import clientPromise from "@/lib/db"
-import { User } from "@/types/User"
 import { compare } from "bcryptjs"
-import UserModel, { IUser } from '@/models/types/User'
+import UserModel from '@/models/User'
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -14,39 +13,35 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          throw new Error("Email y contraseña son requeridos")
         }
 
-        const client = await clientPromise
-        const db = client.db()
-        const usuario = await db.collection<User>("users").findOne({ email: credentials.email })
+        const user = await UserModel.findOne({ email: credentials.email })
 
-        if (!usuario) {
-          return null
+        if (!user || !(await compare(credentials.password, user.password))) {
+          throw new Error("Credenciales inválidas")
         }
 
-        const esContraseñaValida = await compare(credentials.password, usuario.password)
-        if (!esContraseñaValida) {
-          return null
+        if (!user.isApproved) {
+          throw new Error("Tu cuenta aún no ha sido aprobada por un administrador")
         }
 
         return {
-          id: usuario._id.toString(),
-          email: usuario.email,
-          name: usuario.name,
-          role: usuario.membership
+          id: user.id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isApproved: user.isApproved
         }
       }
     })
   ],
-  session: {
-    strategy: "jwt"
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
         token.role = user.role
+        token.isApproved = user.isApproved
       }
       return token
     },
@@ -54,12 +49,15 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.isApproved = token.isApproved as boolean
       }
       return session
     }
   },
   pages: {
     signIn: '/auth/login',
+    error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
+
