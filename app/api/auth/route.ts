@@ -1,16 +1,7 @@
-import { NextAuthOptions } from "next-auth"
+import NextAuth, { NextAuthOptions, DefaultSession, DefaultUser } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
-import { connectDB } from "@/lib/db"
-import UserModel, { IUser } from '@/types/User'
-
-interface ExtendedUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  isApproved: boolean;
-}
+import UserModel from '@/models/User'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -25,15 +16,14 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email y contraseña son requeridos")
         }
 
-        await connectDB()
-        const user = await UserModel.findOne({ email: credentials.email }) as IUser | null
+        const user = await UserModel.findOne({ email: credentials.email })
 
         if (!user || !(await compare(credentials.password, user.password))) {
           throw new Error("Credenciales inválidas")
         }
 
         return {
-          id: user._id.toString(),
+          id: user.id.toString(),
           name: user.name,
           email: user.email,
           role: user.role,
@@ -46,12 +36,12 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id
-        token.role = (user as ExtendedUser).role
-        token.isApproved = (user as ExtendedUser).isApproved
+        token.role = user.role
+        token.isApproved = user.isApproved
       }
       return token
     },
-    async session({ session, token }) {
+    session: async ({ session, token }) => {
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
@@ -67,7 +57,6 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 }
 
-import NextAuth from "next-auth"
 export const handler = NextAuth(authOptions)
 export { handler as GET, handler as POST }
 
