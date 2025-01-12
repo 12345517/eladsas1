@@ -1,19 +1,6 @@
 import React from 'react'
 
-interface User {
-  id: string
-  name: string
-  isApproved: boolean
-  points: number
-}
-
-interface GenealogyTreeProps {
-  user: User
-  directReferrals: User[]
-  secondLevelReferrals: { [key: string]: User[] }
-}
-
-export const GenealogyTree: React.FC<GenealogyTreeProps> = ({ user, directReferrals, secondLevelReferrals }) => {
+export const GenealogyTree: React.FC<GenealogyTree> = ({ user, directReferrals, secondLevelReferrals }) => {
   return (
     <div className="flex flex-col items-center p-4">
       <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${

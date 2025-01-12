@@ -4,17 +4,10 @@ import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { GenealogyTree } from '@/components/GenealogyTree'
-import { User } from '@/types/User'
-
-interface UserData {
-  user: User;
-  directReferrals: User[];
-  secondLevelReferrals: { [key: string]: User[] };
-}
 
 export default function BackofficePage() {
   const { data: session } = useSession()
-  const [userData, setUserData] = useState<UserData | null>(null)
+  const [userData, setUserData] = useState<BackOfficeData | null>(null)
 
   useEffect(() => {
     const fetchUserData = async () => {
