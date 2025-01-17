@@ -1,32 +1,46 @@
-import { MongoClient } from 'mongodb'
+import mongoose, { ConnectOptions } from 'mongoose'
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Falta la variable de entorno MONGODB_URI')
+const MONGODB_URI = process.env.MONGODB_URI
+
+if (!MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local')
 }
 
-const uri = process.env.MONGODB_URI
-const options = {
-  maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
+interface Cached {
+  conn: typeof mongoose | null;
+  promise: Promise<typeof mongoose> | null;
 }
 
-let client
-let clientPromise: Promise<MongoClient>
+let cached: Cached = (global as any).mongoose
 
-let globalWithMongo = global as typeof globalThis & {
-  _mongoClientPromise: Promise<MongoClient>
+if (!cached) {
+  cached = (global as any).mongoose = { conn: null, promise: null }
 }
 
-if (process.env.NODE_ENV === 'development') {
-  if (!globalWithMongo._mongoClientPromise) {
-    client = new MongoClient(uri, options)
-    globalWithMongo._mongoClientPromise = client.connect()
+export async function connectDB() {
+  if (cached.conn) {
+    return cached.conn
   }
-  clientPromise = globalWithMongo._mongoClientPromise
-} else {
-  client = new MongoClient(uri, options)
-  clientPromise = client.connect()
+
+  if (!cached.promise) {
+    const opts: ConnectOptions = {
+      bufferCommands: false,
+    }
+
+    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((mongoose) => {
+      console.log('Connected to MongoDB')
+      return mongoose
+    })
+  }
+
+  try {
+    cached.conn = await cached.promise
+  } catch (e) {
+    cached.promise = null
+    console.error('Error connecting to MongoDB:', e)
+    throw e
+  }
+
+  return cached.conn
 }
 
-export default clientPromise
