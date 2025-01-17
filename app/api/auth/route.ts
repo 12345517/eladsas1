@@ -4,7 +4,7 @@ import { compare } from "bcryptjs"
 import { connectDB } from "@/lib/db"
 import UserModel from '@/models/User'
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credenciales",
@@ -13,32 +13,27 @@ const authOptions: NextAuthOptions = {
         password: { label: "Contraseña", type: "password" }
       },
       async authorize(credentials) {
-        try {
-          if (!credentials?.email || !credentials?.password) {
-            throw new Error("Email y contraseña son requeridos")
-          }
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email y contraseña son requeridos")
+        }
 
-          await connectDB()
-          const user = await UserModel.findOne({ email: credentials.email })
+        await connectDB()
+        const user = await UserModel.findOne({ email: credentials.email })
 
-          if (!user || !(await compare(credentials.password, user.password))) {
-            throw new Error("Credenciales inválidas")
-          }
+        if (!user || !(await compare(credentials.password, user.password))) {
+          throw new Error("Credenciales inválidas")
+        }
 
-          if (!user.isApproved) {
-            throw new Error("Tu cuenta aún no ha sido aprobada por un administrador")
-          }
+        if (!user.isApproved) {
+          throw new Error("Tu cuenta aún no ha sido aprobada por un administrador")
+        }
 
-          return {
-            id: user.id.toString(),
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            isApproved: user.isApproved
-          }
-        } catch (error) {
-          console.error('Error en la autenticación:', error)
-          throw error
+        return {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isApproved: user.isApproved
         }
       }
     })
