@@ -1,6 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
+import { connectDB } from "@/lib/db"
 import UserModel from '@/models/User'
 
 const authOptions: NextAuthOptions = {
@@ -12,26 +13,32 @@ const authOptions: NextAuthOptions = {
         password: { label: "Contraseña", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Email y contraseña son requeridos")
-        }
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Email y contraseña son requeridos")
+          }
 
-        const user = await UserModel.findOne({ email: credentials.email })
+          await connectDB()
+          const user = await UserModel.findOne({ email: credentials.email })
 
-        if (!user || !(await compare(credentials.password, user.password))) {
-          throw new Error("Credenciales inválidas")
-        }
+          if (!user || !(await compare(credentials.password, user.password))) {
+            throw new Error("Credenciales inválidas")
+          }
 
-        if (!user.isApproved) {
-          throw new Error("Tu cuenta aún no ha sido aprobada por un administrador")
-        }
+          if (!user.isApproved) {
+            throw new Error("Tu cuenta aún no ha sido aprobada por un administrador")
+          }
 
-        return {
-          id: user.id.toString(),
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          isApproved: user.isApproved
+          return {
+            id: user.id.toString(),
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            isApproved: user.isApproved
+          }
+        } catch (error) {
+          console.error('Error en la autenticación:', error)
+          throw error
         }
       }
     })
@@ -59,9 +66,13 @@ const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: 'jwt',
+  },
+  debug: process.env.NODE_ENV === 'development',
 }
 
-const handler = NextAuth(authOptions);
+const handler = NextAuth(authOptions)
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST }
 
