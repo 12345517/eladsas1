@@ -1,26 +1,29 @@
-import { NextResponse } from 'next/server'
+import type { NextApiRequest, NextApiResponse } from 'next'
 import { hash } from 'bcryptjs'
+import { connectDB } from '@/lib/db'
 import UserModel from '@/models/User'
 
-export async function POST(req: Request) {
-  try {
-    const { name, email, password } = await req.json()
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' })
+  }
 
-    // Validate input
+  try {
+    const { name, email, password } = req.body
+
     if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+      return res.status(400).json({ message: 'Missing required fields' })
     }
 
-    // Check if user already exists
+    await connectDB()
+
     const existingUser = await UserModel.findOne({ email })
     if (existingUser) {
-      return NextResponse.json({ error: 'User already exists' }, { status: 400 })
+      return res.status(400).json({ message: 'User already exists' })
     }
 
-    // Hash the password
     const hashedPassword = await hash(password, 12)
 
-    // Create new user
     const newUser = new UserModel({
       name,
       email,
@@ -30,10 +33,10 @@ export async function POST(req: Request) {
 
     await newUser.save()
 
-    return NextResponse.json({ message: 'User registered successfully' }, { status: 201 })
+    res.status(201).json({ message: 'User registered successfully' })
   } catch (error) {
-    console.error('Error in signup:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('Registration error:', error)
+    res.status(500).json({ message: 'Internal server error' })
   }
 }
 

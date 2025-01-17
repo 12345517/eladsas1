@@ -1,31 +1,17 @@
 'use client'
 
-import { useState, FormEvent, ChangeEvent } from 'react'
+import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { signIn } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 
-interface FormData {
-  sponsorId: string;
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-  paymentProof: File | null;
-}
-
 export default function RegisterPage() {
-  const [formData, setFormData] = useState<FormData>({
-    sponsorId: '',
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     password: '',
     confirmPassword: '',
-    paymentProof: null
   })
   const [error, setError] = useState<string>('')
   const router = useRouter()
@@ -39,24 +25,24 @@ export default function RegisterPage() {
       return
     }
 
-    const formDataToSend = new FormData()
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value !== null) {
-        formDataToSend.append(key, value)
-      }
-    })
-
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
-        body: formDataToSend
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        // El registro fue exitoso, pero el usuario aún no está aprobado
-        router.push('/registro-exitoso')
+        router.push('/auth/login?registered=true')
       } else {
-        const data = await response.json()
         setError(data.message || 'Error en el registro')
       }
     } catch (error) {
@@ -64,12 +50,8 @@ export default function RegisterPage() {
     }
   }
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value, files } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: files ? files[0] : value
-    }))
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   return (
@@ -82,20 +64,11 @@ export default function RegisterPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="sponsorId">ID del Patrocinador</label>
-              <Input
-                id="sponsorId"
-                name="sponsorId"
-                value={formData.sponsorId}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div>
               <label htmlFor="name">Nombre</label>
               <Input
                 id="name"
                 name="name"
+                type="text"
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -108,17 +81,6 @@ export default function RegisterPage() {
                 name="email"
                 type="email"
                 value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="phone">Teléfono</label>
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={formData.phone}
                 onChange={handleChange}
                 required
               />
@@ -145,21 +107,8 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="paymentProof">Comprobante de Pago</label>
-              <Input
-                id="paymentProof"
-                name="paymentProof"
-                type="file"
-                onChange={handleChange}
-                required
-              />
-            </div>
             {error && <p className="text-red-500">{error}</p>}
             <Button type="submit" className="w-full">Registrarse</Button>
-            <p className="mt-4 text-sm text-gray-600">
-              Después del registro, un administrador revisará y aprobará tu cuenta.
-            </p>
           </form>
         </CardContent>
       </Card>
