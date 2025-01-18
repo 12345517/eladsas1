@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
+import { connectDB } from "@/lib/db"
 import UserModel from '@/models/User'
 
 export const authOptions: NextAuthOptions = {
@@ -16,6 +17,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email y contraseña son requeridos")
         }
 
+        await connectDB()
         const user = await UserModel.findOne({ email: credentials.email })
 
         if (!user || !(await compare(credentials.password, user.password))) {
@@ -27,9 +29,9 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user.id.toString(),
-          name: user.name,
+          id: user._id.toString(),
           email: user.email,
+          name: user.name,
           role: user.role,
           isApproved: user.isApproved
         }
@@ -59,5 +61,8 @@ export const authOptions: NextAuthOptions = {
     error: '/auth/error',
   },
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: 'jwt',
+  },
 }
 

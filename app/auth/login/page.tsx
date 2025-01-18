@@ -2,7 +2,7 @@
 
 import { useState, FormEvent } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -44,9 +43,6 @@ export default function LoginPage() {
           <CardDescription>Ingresa a tu cuenta de ELAD SAS</CardDescription>
         </CardHeader>
         <CardContent>
-          {searchParams?.get('registered') === 'true' && (
-            <p className="mb-4 text-green-600">Registro exitoso. Por favor, inicia sesión.</p>
-          )}
           {error && <p className="mb-4 text-red-600">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

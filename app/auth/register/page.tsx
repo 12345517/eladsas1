@@ -2,9 +2,10 @@
 
 import { useState, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -63,8 +64,10 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="name">Nombre</label>
+            <div className="space-y-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Nombre
+              </label>
               <Input
                 id="name"
                 name="name"
@@ -74,8 +77,10 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="email">Email</label>
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
               <Input
                 id="email"
                 name="email"
@@ -85,8 +90,10 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="password">Contraseña</label>
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Contraseña
+              </label>
               <Input
                 id="password"
                 name="password"
@@ -96,8 +103,10 @@ export default function RegisterPage() {
                 required
               />
             </div>
-            <div>
-              <label htmlFor="confirmPassword">Confirmar Contraseña</label>
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirmar Contraseña
+              </label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -108,9 +117,19 @@ export default function RegisterPage() {
               />
             </div>
             {error && <p className="text-red-500">{error}</p>}
-            <Button type="submit" className="w-full">Registrarse</Button>
+            <Button type="submit" className="w-full">
+              Registrarse
+            </Button>
           </form>
         </CardContent>
+        <CardFooter className="flex justify-center">
+          <p className="text-sm text-gray-600">
+            ¿Ya tienes una cuenta?{' '}
+            <Link href="/auth/login" className="text-blue-600 hover:underline">
+              Inicia sesión
+            </Link>
+          </p>
+        </CardFooter>
       </Card>
     </div>
   )
