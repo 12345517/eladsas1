@@ -1,38 +1,37 @@
-import { NextResponse } from 'next/server'
-import { hash } from 'bcryptjs'
-import { connectDB } from '@/lib/db'
-import UserModel from '@/models/User'
+import { NextResponse } from "next/server"
+import { hash } from "bcryptjs"
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 export async function POST(req: Request) {
   try {
     const { name, email, password } = await req.json()
 
     if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+      return NextResponse.json({ error: "Faltan campos requeridos" }, { status: 400 })
     }
 
-    await connectDB()
-
-    const existingUser = await UserModel.findOne({ email })
+    const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {
-      return NextResponse.json({ error: 'User already exists' }, { status: 400 })
+      return NextResponse.json({ error: "El usuario ya existe" }, { status: 400 })
     }
 
     const hashedPassword = await hash(password, 12)
 
-    const newUser = new UserModel({
-      name,
-      email,
-      password: hashedPassword,
-      isApproved: false,
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        isApproved: false,
+      },
     })
 
-    await newUser.save()
-
-    return NextResponse.json({ message: 'User registered successfully' }, { status: 201 })
+    return NextResponse.json({ message: "Usuario registrado exitosamente", userId: newUser.id }, { status: 201 })
   } catch (error) {
-    console.error('Error in registration:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error("Error en el registro:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
 

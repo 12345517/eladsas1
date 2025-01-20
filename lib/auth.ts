@@ -1,8 +1,9 @@
-import { NextAuthOptions } from "next-auth"
+import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcryptjs"
-import { connectDB } from "@/lib/db"
-import UserModel from '@/models/User'
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -10,15 +11,14 @@ export const authOptions: NextAuthOptions = {
       name: "Credenciales",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Contraseña", type: "password" }
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email y contraseña son requeridos")
         }
 
-        await connectDB()
-        const user = await UserModel.findOne({ email: credentials.email })
+        const user = await prisma.user.findUnique({ where: { email: credentials.email } })
 
         if (!user || !(await compare(credentials.password, user.password))) {
           throw new Error("Credenciales inválidas")
@@ -29,14 +29,14 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user._id.toString(),
+          id: user.id,
           email: user.email,
           name: user.name,
           role: user.role,
-          isApproved: user.isApproved
+          isApproved: user.isApproved,
         }
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -54,15 +54,15 @@ export const authOptions: NextAuthOptions = {
         session.user.isApproved = token.isApproved as boolean
       }
       return session
-    }
+    },
   },
   pages: {
-    signIn: '/auth/login',
-    error: '/auth/error',
+    signIn: "/auth/login",
+    error: "/auth/error",
   },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
 }
 

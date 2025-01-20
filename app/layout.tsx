@@ -1,13 +1,12 @@
-import { Inter } from 'next/font/google'
-import { NextAuthProvider } from '@/components/providers/NextAuthProvider'
-import { Toaster } from "@/components/ui/toaster"
-import './globals.css'
+import { Inter } from "next/font/google"
+import "./globals.css"
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
-  title: 'ELAD SAS',
-  description: 'Sistema de Referidos y Árbol Genealógico',
+  title: "ELAD SAS",
+  description: "Sistema de Referidos y Árbol Genealógico",
+  themeColor: "#4a90e2", // Ajuste este color según su diseño
 }
 
 export default function RootLayout({
@@ -17,12 +16,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className={inter.className}>
-        <NextAuthProvider>
-          {children}
-          <Toaster />
-        </NextAuthProvider>
-      </body>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }
